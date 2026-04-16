@@ -846,43 +846,43 @@ class _PurchaseRequestPageState extends State<PurchaseRequestPage> {
                                 label: Text(_showArchived ? AppLocalizations.of(context)!.unarchiveSelected : AppLocalizations.of(context)!.archiveSelected),
                                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED), foregroundColor: Colors.white),
                               ),
-                              const SizedBox(width: 12),
-                              ElevatedButton.icon(
-                                onPressed: curSelected.isEmpty ? null : () async {
-                                  final confirmed = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text(AppLocalizations.of(context)!.deleteSelected,style: const TextStyle(color: Color.fromARGB(255, 240, 239, 241)),),
-                                      content: Text(AppLocalizations.of(context)!.confirmDeleteSelectedRequests(curSelected.length.toString())),
-                                      actions: [
-                                        TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(AppLocalizations.of(context)!.cancel)),
-                                        ElevatedButton(onPressed: () => Navigator.of(context).pop(true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: Text(AppLocalizations.of(context)!.delete)),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirmed != true) return;
-                                  final controller = Provider.of<PurchaseRequestController>(context, listen: false);
-                                  final userCtrl = Provider.of<UserController>(context, listen: false);
-                                  try {
-                                    for (final id in curSelected) {
-                                      await controller.deleteRequest(id, context);
-                                    }
-                                    await controller.fetchRequests(context, userCtrl.currentUser);
-                                    pageDataSource.clearSelection();
-                                    if (mounted) {
-                                      setState(() {});
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.deletedRequests(curSelected.length.toString()))));
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToDeleteRequests(e.toString()))));
-                                    }
-                                  }
-                                },
-                                icon: const Icon(Icons.delete_outline),
-                                label: Text(AppLocalizations.of(context)!.deleteSelected),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-                              ),
+                              // const SizedBox(width: 12),
+                              // ElevatedButton.icon(
+                              //   onPressed: curSelected.isEmpty ? null : () async {
+                              //     final confirmed = await showDialog<bool>(
+                              //       context: context,
+                              //       builder: (context) => AlertDialog(
+                              //         title: Text(AppLocalizations.of(context)!.deleteSelected,style: const TextStyle(color: Color.fromARGB(255, 240, 239, 241)),),
+                              //         content: Text(AppLocalizations.of(context)!.confirmDeleteSelectedRequests(curSelected.length.toString())),
+                              //         actions: [
+                              //           TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(AppLocalizations.of(context)!.cancel)),
+                              //           ElevatedButton(onPressed: () => Navigator.of(context).pop(true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: Text(AppLocalizations.of(context)!.delete)),
+                              //         ],
+                              //       ),
+                              //     );
+                              //     if (confirmed != true) return;
+                              //     final controller = Provider.of<PurchaseRequestController>(context, listen: false);
+                              //     final userCtrl = Provider.of<UserController>(context, listen: false);
+                              //     try {
+                              //       for (final id in curSelected) {
+                              //         await controller.deleteRequest(id, context);
+                              //       }
+                              //       await controller.fetchRequests(context, userCtrl.currentUser);
+                              //       pageDataSource.clearSelection();
+                              //       if (mounted) {
+                              //         setState(() {});
+                              //         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.deletedRequests(curSelected.length.toString()))));
+                              //       }
+                              //     } catch (e) {
+                              //       if (mounted) {
+                              //         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToDeleteRequests(e.toString()))));
+                              //       }
+                              //     }
+                              //   },
+                              //   icon: const Icon(Icons.delete_outline),
+                              //   label: Text(AppLocalizations.of(context)!.deleteSelected),
+                              //   style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                              // ),
                             ],
                           ),
                         );

@@ -507,6 +507,7 @@ class _EditPurchaseOrderState extends State<EditPurchaseOrder> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: DropdownButtonFormField<String>(
+                            isExpanded: true,
                             // match saved priority case-insensitively and default to 'High'
                             value: ['High', 'Medium', 'Low']
                                 .firstWhere((p) => p.toLowerCase() == (_priority ?? '').toLowerCase(), orElse: () => 'High'),
@@ -516,6 +517,7 @@ class _EditPurchaseOrderState extends State<EditPurchaseOrder> {
                                       child: Text(
                                         // display the label in UPPERCASE (e.g. 'HIGH')
                                         p.toUpperCase(),
+                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: _priority == p.toLowerCase()
                                               ? (_priority == 'high'
@@ -1001,6 +1003,18 @@ bottomNavigationBar: Container(
     final isLocked = product.statutLine != null && 
                      (product.statutLine == 'approved' || product.statutLine == 'rejected');
 
+    // Load products for this product line's subfamily if not already loaded
+    if (product.subFamily != null && product.subFamily!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_productOptions.containsKey(product) || (_productOptions[product]?.isEmpty ?? true)) {
+          final subId = subfamilyIds[product.subFamily];
+          if (subId != null && subId.isNotEmpty) {
+            _loadProductsForSubfamily(product, subId);
+          }
+        }
+      });
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -1011,7 +1025,7 @@ bottomNavigationBar: Container(
             children: [
               // Family
               Expanded(
-                flex: 2,
+                flex: 6,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1040,6 +1054,7 @@ bottomNavigationBar: Container(
                                 onChanged: (val) => setState(() => product.family = val),
                               )
                             : DropdownButtonFormField<String>(
+                                isExpanded: true,
                                 value: (product.family != null && dynamicProductFamilies.keys.contains(product.family)) ? product.family : (product.family != null ? product.family : null),
                                 items: () {
                                   final list = <String>[];
@@ -1047,7 +1062,7 @@ bottomNavigationBar: Container(
                                   if (product.family != null && product.family!.isNotEmpty && !list.contains(product.family)) {
                                     list.insert(0, product.family!);
                                   }
-                                  return list.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList();
+                                  return list.map((f) => DropdownMenuItem(value: f, child: Text(f, overflow: TextOverflow.ellipsis))).toList();
                                 }(),
                                 onChanged: isLocked ? null : (val) => setState(() {
                                   product.family = val;
@@ -1087,7 +1102,7 @@ bottomNavigationBar: Container(
               const SizedBox(width: 12),
               // Subfamily
               Expanded(
-                flex: 2,
+                flex: 6,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1095,6 +1110,7 @@ bottomNavigationBar: Container(
                     const SizedBox(height: 4),
                     ((dynamicProductFamilies[product.family] ?? []).isNotEmpty)
                         ? DropdownButtonFormField<String>(
+                            isExpanded: true,
                             value: ((dynamicProductFamilies[product.family] ?? []).contains(product.subFamily)) ? product.subFamily : (product.subFamily != null && product.subFamily!.isNotEmpty ? product.subFamily : null),
                             items: () {
                               final list = <String>[];
@@ -1102,7 +1118,7 @@ bottomNavigationBar: Container(
                               if (product.subFamily != null && product.subFamily!.isNotEmpty && !list.contains(product.subFamily)) {
                                 list.insert(0, product.subFamily!);
                               }
-                              return list.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList();
+                              return list.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis))).toList();
                             }(),
                             onChanged: isLocked ? null : (val) {
                               setState(() {
@@ -1158,7 +1174,7 @@ bottomNavigationBar: Container(
                 ),
               ),
               const SizedBox(width: 12),
-              // Product
+              // Product - filtered by subfamily
               Expanded(
                 flex: 3,
                 child: Column(
@@ -1167,9 +1183,10 @@ bottomNavigationBar: Container(
                     Text('Product ${productLines.length > 1 ? index + 1 : ''}'),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
-                      value: ((_productOptions[product] ?? allProductOptions).contains(product.product)) ? product.product : null,
-                      items: ((_productOptions[product] ?? allProductOptions)
-                          .map((prod) => DropdownMenuItem(value: prod, child: Text(prod)))
+                      isExpanded: true,
+                      value: ((_productOptions[product] ?? []).contains(product.product)) ? product.product : null,
+                      items: ((_productOptions[product] ?? [])
+                          .map((prod) => DropdownMenuItem(value: prod, child: Text(prod, overflow: TextOverflow.ellipsis)))
                           .toList()),
                       onChanged: isLocked ? null : (val) {
                         setState(() {
@@ -1226,7 +1243,7 @@ bottomNavigationBar: Container(
               const SizedBox(width: 12),
               // Quantity (fixed width)
               SizedBox(
-                width: 160,
+                width: 80,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1300,10 +1317,11 @@ bottomNavigationBar: Container(
                       )
                     else
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         value: suppliers.contains(product.supplier)
                             ? product.supplier
                             : (product.supplier != null && product.supplier!.isNotEmpty ? 'Autre' : null),
-                        items: suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        items: suppliers.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis))).toList(),
                         onChanged: isLocked ? null : (val) => setState(() {
                           if (val == 'Autre') {
                             product.supplier = '';
@@ -1359,8 +1377,9 @@ bottomNavigationBar: Container(
               SizedBox(
                 width: 160, // agrandi de 120 -> 160
                 child: DropdownButtonFormField<String>(
+                  isExpanded: true,
                   value: product.currency,
-                  items: _currencySymbols.keys.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  items: _currencySymbols.keys.map((c) => DropdownMenuItem(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(),
                   onChanged: isLocked ? null : (val) {
                     final newCur = val ?? _currency;
                     print('🔧 product line currency changed to $newCur, updating order currency');

@@ -7,6 +7,7 @@ import 'package:open_file/open_file.dart';
 import 'package:flutter_application_1/controllers/purchase_order_controller.dart';
 import 'package:flutter_application_1/controllers/supplier_controller.dart';
 import 'package:flutter_application_1/controllers/user_controller.dart';
+import 'package:flutter_application_1/controllers/product_controller.dart';
 import 'package:flutter_application_1/network/purchase_request_network.dart';
 import 'package:flutter_application_1/models/purchase_request.dart';
 import 'package:flutter_application_1/controllers/department_controller.dart';
@@ -54,6 +55,11 @@ class _PurchaseDashboardPageState extends State<PurchaseDashboardPage>
   String? _selectedDepartment;
   String? _selectedRequester;
 
+  // Cached category lookup for dashboard family/subfamily filters.
+  Map<String, List<String>> _dashboardCategoryFamilies = {};
+  bool _dashboardCategoriesLoaded = false;
+  bool _dashboardCategoriesLoading = false;
+
 
   @override
   void initState() {
@@ -68,6 +74,11 @@ class _PurchaseDashboardPageState extends State<PurchaseDashboardPage>
           context.read<DepartmentController>().fetchDepartments(),
         ]);
       } catch (_) {}
+
+      if (!mounted) return;
+
+      // Load family/subfamily lookup values for dashboard filters.
+      await _loadDashboardCategories();
 
       if (!mounted) return;
 
@@ -902,6 +913,69 @@ class _PurchaseDashboardPageState extends State<PurchaseDashboardPage>
     return sub.toList()..sort();
   }
 
+  Future<void> _loadDashboardCategories() async {
+    if (_dashboardCategoriesLoaded || _dashboardCategoriesLoading) return;
+    _dashboardCategoriesLoading = true;
+    try {
+      final rawData = await context.read<ProductController>().getCategoriesWithoutQuery();
+      final List<dynamic> categoryList = rawData is List
+          ? rawData
+          : (rawData is Map && rawData['results'] is List)
+              ? rawData['results'] as List<dynamic>
+              : [];
+
+      final Map<String, Map<String, dynamic>> categoriesById = {};
+      for (var item in categoryList) {
+        if (item is Map<String, dynamic>) {
+          final id = item['id']?.toString();
+          if (id != null) {
+            categoriesById[id] = item;
+          }
+        }
+      }
+
+      final Map<String, Set<String>> categories = {};
+      for (var item in categoryList) {
+        if (item is! Map<String, dynamic>) continue;
+        final parentId = item['parent_category'];
+        final name = item['name']?.toString().trim();
+        if (name == null || name.isEmpty) continue;
+
+        final parentIdStr = parentId?.toString();
+        if (parentId == null || parentIdStr == '0' || parentIdStr == '') {
+          categories.putIfAbsent(name, () => <String>{});
+        }
+      }
+
+      for (var item in categoryList) {
+        if (item is! Map<String, dynamic>) continue;
+        final parentId = item['parent_category'];
+        final name = item['name']?.toString().trim();
+        if (name == null || name.isEmpty) continue;
+        final parentIdStr = parentId?.toString();
+        if (parentId != null && parentIdStr != '0' && parentIdStr != '') {
+          final parent = categoriesById[parentIdStr];
+          final parentName = parent != null ? parent['name']?.toString().trim() : null;
+          if (parentName != null && parentName.isNotEmpty) {
+            categories.putIfAbsent(parentName, () => <String>{}).add(name);
+          }
+        }
+      }
+
+      setState(() {
+        _dashboardCategoryFamilies = categories.map((key, value) {
+          final sorted = value.toList()..sort();
+          return MapEntry(key, sorted);
+        });
+        _dashboardCategoriesLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('⚠️ Failed to load dashboard product categories: $e');
+    } finally {
+      _dashboardCategoriesLoading = false;
+    }
+  }
+
   void _sortOrders(List orders, String sortBy, bool ascending) {
     orders.sort((a, b) {
       int comparison = 0;
@@ -981,8 +1055,6 @@ class _PurchaseDashboardPageState extends State<PurchaseDashboardPage>
   Widget build(BuildContext context) {
     final poController = context.watch<PurchaseOrderController>();
     final supplierController = context.watch<SupplierController>();
-    // watch purchase requests too so that requester names update when PR list loads
-    final prController = context.watch<PurchaseRequestController>();
     // Use watch so the UI rebuilds when the users list is loaded/updated
     final userController = context.watch<UserController>();
 
@@ -1240,34 +1312,43 @@ class _PurchaseDashboardPageState extends State<PurchaseDashboardPage>
     debugPrint('    - family: $_selectedFamily');
 
 
-    // Recompute dropdown options from filtered data so filters cascade properly
+    // Recompute dropdown options from all orders so selected filters remain
+    // visible and other choices stay available.
     final controllerApproved = supplierController.suppliers
         .where((s) =>
             (s.approvalStatus ?? '').toLowerCase() == 'approved' &&
             (s.name?.isNotEmpty ?? false))
         .map((s) => s.name!.trim())
         .toSet();
-    final ordersSuppliers = _getSuppliers(filteredOrders).toSet();
-    List<String> suppliers;
-    if (ordersSuppliers.isNotEmpty) {
-      // when we have orders after filtering, show only the suppliers actually
-      // present in those orders (cascade behaviour)
-      suppliers = ordersSuppliers.toList();
-    } else {
-      // no orders yet (initial state or filters removed) – fall back to all
-      // approved suppliers so dropdown isn't empty
-      suppliers = controllerApproved.toList();
+    final ordersSuppliers = _getSuppliers(ordersFromServer).toSet();
+    final suppliers = <String>{}
+      ..addAll(controllerApproved)
+      ..addAll(ordersSuppliers)
+      ..removeWhere((item) => item.isEmpty);
+    if (_selectedSupplier != null && _selectedSupplier!.isNotEmpty) {
+      suppliers.add(_selectedSupplier!);
     }
-    suppliers.sort();
+    final sortedSuppliers = suppliers.toList()..sort();
 
-    // families/subfamilies cascade like suppliers: use filteredOrders when
-    // available, otherwise fall back to the master list (ordersFromServer).
-    final families = (filteredOrders.isNotEmpty)
-        ? _getFamilies(filteredOrders)
+    final families = _dashboardCategoriesLoaded
+        ? _dashboardCategoryFamilies.keys.toList()
         : _getFamilies(ordersFromServer);
-    final subfamilies = (filteredOrders.isNotEmpty)
-        ? _getSubFamilies(filteredOrders, _selectedFamily)
+    families.sort();
+    if (_selectedFamily != null && _selectedFamily!.isNotEmpty &&
+        !families.contains(_selectedFamily)) {
+      families.insert(0, _selectedFamily!);
+    }
+
+    final subfamiliesBase = _dashboardCategoriesLoaded
+        ? (_selectedFamily != null && _selectedFamily!.isNotEmpty
+            ? _dashboardCategoryFamilies[_selectedFamily] ?? []
+            : _dashboardCategoryFamilies.values.expand((items) => items).toSet().toList())
         : _getSubFamilies(ordersFromServer, _selectedFamily);
+    final subfamilies = subfamiliesBase.toList()..sort();
+    if (_selectedSubFamily != null && _selectedSubFamily!.isNotEmpty &&
+        !subfamilies.contains(_selectedSubFamily)) {
+      subfamilies.insert(0, _selectedSubFamily!);
+    }
 
     // Build requester list based primarily on department users, then narrow
     // to those having a PO if possible. This ensures the dropdown isn’t empty
@@ -1282,40 +1363,21 @@ class _PurchaseDashboardPageState extends State<PurchaseDashboardPage>
       return true;
     }).toList();
 
-    List<User> filteredRequesters;
-    if (filteredOrders.isNotEmpty) {
-      // gather requester ids from orders (stringified for safety)
-      final orderIds = filteredOrders
-          .map((o) => o.requestedByUser?.toString())
-          .where((id) => id != null)
-          .toSet();
-      // also include any requester ids coming from the originating PR
-      final prCtrl = prController; // already watched above
-      final prIds = <String>{};
-      for (var o in filteredOrders) {
-        try {
-          final prId = o.purchaseRequestId;
-          if (prId != null) {
-            dynamic foundPr;
-            for (var p in prCtrl.requests) {
-              if (p.id == prId) {
-                foundPr = p;
-                break;
-              }
-            }
-            if (foundPr != null && foundPr.requestedBy != null) {
-              prIds.add(foundPr.requestedBy.toString());
-            }
-          }
-        } catch (_) {}
+    List<User> filteredRequesters = deptUsers;
+    if (_selectedRequester != null && _selectedRequester!.isNotEmpty &&
+        !filteredRequesters
+            .any((u) => u.id?.toString() == _selectedRequester)) {
+      User? selectedUser;
+      try {
+        selectedUser = userController.users.firstWhere(
+          (u) => u.id?.toString() == _selectedRequester,
+        );
+      } catch (_) {
+        selectedUser = null;
       }
-      final combinedIds = {...orderIds, ...prIds};
-      final matched = deptUsers
-          .where((u) => combinedIds.contains(u.id?.toString()))
-          .toList();
-      filteredRequesters = matched.isNotEmpty ? matched : deptUsers;
-    } else {
-      filteredRequesters = deptUsers;
+      if (selectedUser != null) {
+        filteredRequesters.add(selectedUser);
+      }
     }
     filteredRequesters.sort((a, b) {
       final aName = (a.username ?? a.name ?? '').toLowerCase();
@@ -1522,7 +1584,7 @@ class _PurchaseDashboardPageState extends State<PurchaseDashboardPage>
                                       value: null,
                                       child: Text(
                                           AppLocalizations.of(context)!.allSuppliers)),
-                                  ...suppliers.map((s) => DropdownMenuItem<String>(
+                                  ...sortedSuppliers.map((s) => DropdownMenuItem<String>(
                                       value: s, child: Text(s))),
                                 ],
                                 onChanged: (val) {

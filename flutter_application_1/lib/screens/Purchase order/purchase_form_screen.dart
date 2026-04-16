@@ -85,6 +85,12 @@ class _PurchaseOrderFormState extends State<PurchaseOrderForm> {
   late SupplierController supplierController;
   late ProductController productController;
   late List<String> suppliers = [];
+  
+  // Category/Family/Subfamily lookup for product filtering
+  Map<String, List<Map<String, dynamic>>> _categoryFamilies = {};
+  Map<String, String> _subfamilyIds = {};
+  Map<String, List<String>> _subfamilyProducts = {};
+  
   List<String> productOptions = [];
   final Map<ProductLine, TextEditingController> _productTextControllers = {};
 
@@ -94,7 +100,7 @@ class _PurchaseOrderFormState extends State<PurchaseOrderForm> {
     supplierController = Provider.of<SupplierController>(context, listen: false);
     productController = Provider.of<ProductController>(context, listen: false);
     _fetchSuppliers();
-    _fetchProductOptions();
+    _loadProductCategoriesAndFamilies();
     final initial = widget.initialOrder;
     if (initial.isNotEmpty) {
       // populate currency from existing order if present
@@ -230,6 +236,87 @@ class _PurchaseOrderFormState extends State<PurchaseOrderForm> {
     } catch (e) {
       print('Error fetching suppliers: $e');
     }
+  }
+
+  Future<void> _loadProductCategoriesAndFamilies() async {
+    try {
+      final rawData = await productController.getCategoriesWithoutQuery();
+      final List<dynamic> categoryList = rawData is List
+          ? rawData
+          : (rawData is Map && rawData['results'] is List)
+              ? rawData['results'] as List<dynamic>
+              : [];
+
+      final Map<String, Map<String, dynamic>> categoriesById = {};
+      for (var item in categoryList) {
+        if (item is Map<String, dynamic>) {
+          final id = item['id']?.toString();
+          if (id != null) {
+            categoriesById[id] = item;
+          }
+        }
+      }
+
+      final Map<String, List<Map<String, dynamic>>> families = {};
+      final Map<String, String> subfamilyIdMap = {};
+
+      for (var item in categoryList) {
+        if (item is! Map<String, dynamic>) continue;
+        final id = item['id']?.toString();
+        final parentId = item['parent_category']?.toString();
+        final name = item['name']?.toString().trim() ?? '';
+        if (name.isEmpty || id == null) continue;
+
+        if (parentId == null || parentId == '0' || parentId == '') {
+          families.putIfAbsent(name, () => []);
+        } else {
+          final parent = categoriesById[parentId];
+          final parentName = parent?['name']?.toString().trim() ?? '';
+          if (parentName.isNotEmpty) {
+            families.putIfAbsent(parentName, () => []).add({
+              'id': id,
+              'name': name,
+              'parent_id': parentId,
+            });
+            subfamilyIdMap[name] = id;
+          }
+        }
+      }
+
+      final Map<String, List<String>> subfamilyProductsMap = {};
+      for (var subfamilyName in subfamilyIdMap.keys) {
+        final subfamilyId = subfamilyIdMap[subfamilyName];
+        try {
+          final products = await productController.getProducts(subcategoryId: int.tryParse(subfamilyId ?? ''));
+          final productNames = products
+              .where((p) => p.name.isNotEmpty)
+              .map((p) => p.name)
+              .toList()
+              ..sort();
+          subfamilyProductsMap[subfamilyId ?? ''] = productNames;
+        } catch (e) {
+          print('Error loading products for subfamily $subfamilyName: $e');
+          subfamilyProductsMap[subfamilyId ?? ''] = [];
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _categoryFamilies = families;
+          _subfamilyIds = subfamilyIdMap;
+          _subfamilyProducts = subfamilyProductsMap;
+        });
+      }
+    } catch (e) {
+      print('Error loading product categories and families: $e');
+    }
+  }
+
+  List<String> _getProductsForSubfamily(String? subfamilyName) {
+    if (subfamilyName == null || subfamilyName.isEmpty) return [];
+    final subfamilyId = _subfamilyIds[subfamilyName];
+    if (subfamilyId == null) return [];
+    return _subfamilyProducts[subfamilyId] ?? [];
   }
 
   Future<void> _fetchProductOptions() async {
@@ -642,25 +729,57 @@ Row(
     final isLocked = product.statutLine != null && 
                      (product.statutLine == 'approved' || product.statutLine == 'rejected');
     
+    // Get list of subfamilies from the category families structure
+    final subfamilyList = _categoryFamilies.keys.toList();
+    
+    // Get products for the selected subfamily
+    final productsForSubfamily = _getProductsForSubfamily(product.subFamily);
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         children: [
           Row(
             children: [
-              // Product ID field removed
+              // Subfamily selector
+              Expanded(
+                flex: 2,
+                child: DropdownButtonFormField<String>(
+                  value: subfamilyList.contains(product.subFamily) ? product.subFamily : null,
+                  decoration: InputDecoration(
+                    labelText: 'Sous-famille',
+                    border: const OutlineInputBorder(),
+                  ),
+                  items: subfamilyList
+                      .map((subfam) => DropdownMenuItem(value: subfam, child: Text(subfam)))
+                      .toList(),
+                  onChanged: isLocked ? null : (val) {
+                    setState(() {
+                      product.subFamily = val;
+                      // Reset product when subfamily changes
+                      product.product = null;
+                      final controller = _productTextControllers[product];
+                      if (controller != null) {
+                        controller.clear();
+                      }
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Product selector - filtered by subfamily
               Expanded(
                 flex: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: productOptions.contains(product.product) ? product.product : null,
+                      value: productsForSubfamily.contains(product.product) ? product.product : null,
                       decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.product,
                         border: const OutlineInputBorder(),
                       ),
-                      items: productOptions
+                      items: productsForSubfamily
                           .map((prod) => DropdownMenuItem(value: prod, child: Text(prod)))
                           .toList(),
                       onChanged: isLocked ? null : (val) {

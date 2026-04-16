@@ -609,58 +609,58 @@ class _PurchaseOrderPageBodyState extends State<_PurchaseOrderPageBody> {
                           style: ElevatedButton.styleFrom(backgroundColor: _showArchived ? Colors.green : Colors.blue, foregroundColor: Colors.white),
                         ),
                         const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            final bool? confirmed = await showDialog<bool>(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => Dialog(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                backgroundColor: const Color(0xFFF7F2FA),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 360),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(AppLocalizations.of(context)!.deletePurchaseOrders, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                                        const SizedBox(height: 12),
-                                        Text(AppLocalizations.of(context)!.confirmDeletePurchaseOrders(dataSource.selectedRowCount), style: const TextStyle(fontSize: 14), textAlign: TextAlign.center),
-                                        const SizedBox(height: 20),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Color(0xFF6F4DBF), fontWeight: FontWeight.w500, fontSize: 14))),
-                                            const SizedBox(width: 16),
-                                            ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                            if (confirmed == true) {
-                              final controller = Provider.of<PurchaseOrderController>(context, listen: false);
-                              final ids = dataSource.getSelectedIds();
-                              for (final id in ids) {
-                                try {
-                                  await controller.deleteOrder(id);
-                                } catch (e) {
-                                  // ignore individual errors
-                                }
-                              }
-                              await controller.fetchOrders(page: null, pageSize: null);
-                              dataSource.clearSelection();
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.deletedPurchaseOrders(ids.length))));
-                            }
-                          },
-                          icon: const Icon(Icons.delete_outline),
-                          label: Text(AppLocalizations.of(context)!.deleteSelected),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                        ),
+                        // ElevatedButton.icon(
+                        //   onPressed: () async {
+                        //     final bool? confirmed = await showDialog<bool>(
+                        //       context: context,
+                        //       barrierDismissible: false,
+                        //       builder: (context) => Dialog(
+                        //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        //         backgroundColor: const Color(0xFFF7F2FA),
+                        //         child: Padding(
+                        //           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                        //           child: ConstrainedBox(
+                        //             constraints: const BoxConstraints(maxWidth: 360),
+                        //             child: Column(
+                        //               mainAxisSize: MainAxisSize.min,
+                        //               children: [
+                        //                 Text(AppLocalizations.of(context)!.deletePurchaseOrders, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                        //                 const SizedBox(height: 12),
+                        //                 Text(AppLocalizations.of(context)!.confirmDeletePurchaseOrders(dataSource.selectedRowCount), style: const TextStyle(fontSize: 14), textAlign: TextAlign.center),
+                        //                 const SizedBox(height: 20),
+                        //                 Row(
+                        //                   mainAxisAlignment: MainAxisAlignment.center,
+                        //                   children: [
+                        //                     TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(color: Color(0xFF6F4DBF), fontWeight: FontWeight.w500, fontSize: 14))),
+                        //                     const SizedBox(width: 16),
+                        //                     ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                        //                   ],
+                        //                 ),
+                        //               ],
+                        //             ),
+                        //           ),
+                        //         ),
+                        //       ),
+                        //     );
+                        //     if (confirmed == true) {
+                        //       final controller = Provider.of<PurchaseOrderController>(context, listen: false);
+                        //       final ids = dataSource.getSelectedIds();
+                        //       for (final id in ids) {
+                        //         try {
+                        //           await controller.deleteOrder(id);
+                        //         } catch (e) {
+                        //           // ignore individual errors
+                        //         }
+                        //       }
+                        //       await controller.fetchOrders(page: null, pageSize: null);
+                        //       dataSource.clearSelection();
+                        //       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.deletedPurchaseOrders(ids.length))));
+                        //     }
+                        //   },
+                        //   // icon: const Icon(Icons.delete_outline),
+                        //   // label: Text(AppLocalizations.of(context)!.deleteSelected),
+                        //   // style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                        // ),
                         const SizedBox(width: 12),
                         Text(AppLocalizations.of(context)!.selectedCount(dataSource.selectedRowCount), style: const TextStyle(fontWeight: FontWeight.w600)),
                       ],
@@ -1441,11 +1441,11 @@ class _PurchaseOrderDataSource extends DataTableSource {
                 );
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => onDelete(item),
-              tooltip: AppLocalizations.of(this.context!)!.delete,
-            ),
+            // IconButton(
+            //   icon: const Icon(Icons.delete_outline),
+            //   onPressed: () => onDelete(item),
+            //   tooltip: AppLocalizations.of(this.context!)!.delete,
+            // ),
           ],
         )),
       ],

@@ -355,55 +355,55 @@ class PurchaseRequestDataSource extends DataTableSource {
                 );
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, size: 25),
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(),
-              color: Colors.black,
-              tooltip: 'Delete',
-              onPressed: () async {
-                final bool? confirmed = await showDialog<bool>(
-                  context: context,
-                  barrierColor: Colors.black.withOpacity(0.2),
-                  builder: (context) => Dialog(
-                    backgroundColor: const Color(0xF7F3F7FF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 340, minWidth: 260),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Delete Purchase', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-                            const SizedBox(height: 16),
-                            Text('Are you sure you want to delete ${request.id}?', style: const TextStyle(fontSize: 16)),
-                            const SizedBox(height: 28),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: Colors.deepPurple, fontSize: 16))),
-                                const SizedBox(width: 12),
-                                ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 237, 4, 4), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), elevation: 0), child: const Text('Delete', style: TextStyle(fontSize: 16))),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-                if (confirmed == true) {
-                  try {
-                    await Provider.of<PurchaseRequestController>(context, listen: false).deleteRequest(request.id!, context);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))), backgroundColor: const Color.fromARGB(255, 26, 6, 243), content: Text('Purchase request ${request.id} deleted')));
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))), backgroundColor: const Color.fromARGB(255, 26, 6, 243), content: Text('Error deleting purchase request: $e')));
-                  }
-                }
-              },
-            ),
+            // IconButton(
+            //   icon: const Icon(Icons.delete_outline, size: 25),
+            //   padding: const EdgeInsets.all(8),
+            //   constraints: const BoxConstraints(),
+            //   color: Colors.black,
+            //   tooltip: 'Delete',
+            //   onPressed: () async {
+            //     final bool? confirmed = await showDialog<bool>(
+            //       context: context,
+            //       barrierColor: Colors.black.withOpacity(0.2),
+            //       builder: (context) => Dialog(
+            //         backgroundColor: const Color(0xF7F3F7FF),
+            //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            //         child: ConstrainedBox(
+            //           constraints: const BoxConstraints(maxWidth: 340, minWidth: 260),
+            //           child: Padding(
+            //             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            //             child: Column(
+            //               mainAxisSize: MainAxisSize.min,
+            //               crossAxisAlignment: CrossAxisAlignment.start,
+            //               children: [
+            //                 const Text('Delete Purchase', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+            //                 const SizedBox(height: 16),
+            //                 Text('Are you sure you want to delete ${request.id}?', style: const TextStyle(fontSize: 16)),
+            //                 const SizedBox(height: 28),
+            //                 Row(
+            //                   mainAxisAlignment: MainAxisAlignment.end,
+            //                   children: [
+            //                     TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: Colors.deepPurple, fontSize: 16))),
+            //                     const SizedBox(width: 12),
+            //                     ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 237, 4, 4), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), elevation: 0), child: const Text('Delete', style: TextStyle(fontSize: 16))),
+            //                   ],
+            //                 ),
+            //               ],
+            //             ),
+            //           ),
+            //         ),
+            //       ),
+            //     );
+            //     if (confirmed == true) {
+            //       try {
+            //         await Provider.of<PurchaseRequestController>(context, listen: false).deleteRequest(request.id!, context);
+            //         ScaffoldMessenger.of(context).showSnackBar(SnackBar(shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))), backgroundColor: const Color.fromARGB(255, 26, 6, 243), content: Text('Purchase request ${request.id} deleted')));
+            //       } catch (e) {
+            //         ScaffoldMessenger.of(context).showSnackBar(SnackBar(shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))), backgroundColor: const Color.fromARGB(255, 26, 6, 243), content: Text('Error deleting purchase request: $e')));
+            //       }
+            //     }
+            //   },
+            // ),
           ],
         )),
       ],

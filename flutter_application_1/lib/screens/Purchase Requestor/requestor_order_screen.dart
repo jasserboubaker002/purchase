@@ -56,11 +56,11 @@ class _PurchaseRequestDataSource extends DataTableSource {
               },
               tooltip: 'Edit',
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => onDelete(item), // Fixed typo here
-              tooltip: 'Delete',
-            ),
+            // IconButton(
+            //   icon: const Icon(Icons.delete_outline),
+            //   onPressed: () => onDelete(item), // Fixed typo here
+            //   tooltip: 'Delete',
+            // ),
           ],
         )),
       ],
