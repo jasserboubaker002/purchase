@@ -111,6 +111,36 @@ class _EditPurchaseOrderState extends State<EditPurchaseOrder> {
   String? supplierName;
   String? _dateWarning; // For displaying date conflict warning
 
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return 'Approuvé';
+      case 'rejected':
+        return 'Rejeté';
+      case 'rework':
+      case 'for modification':
+        return 'Rejeté pour modification';
+      default:
+        return 'En attente';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'rework':
+      case 'for modification':
+        return Colors.orange;
+      case 'pending':
+        return Colors.blue;
+      default:
+        return Colors.blueGrey;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -859,7 +889,16 @@ bottomNavigationBar: Container(
       // Adapter la structure des produits pour le backend (supplier per product)
       final supplierControllerLocal = supplierController;
 
-      final List<Map<String, dynamic>> productsList = productLines.map((p) {
+      // Vérifier le rôle de l'utilisateur pour filtrer les lignes rejetées
+      final userController = Provider.of<UserController>(context, listen: false);
+      final userRoleId = userController.currentUser.role?.id;
+
+      // Pour le rôle 4 (supervisor), filtrer les lignes avec statut "rejected"
+      final filteredProductLines = (userRoleId == 4)
+          ? productLines.where((p) => p.statutLine?.toLowerCase() != 'rejected').toList()
+          : productLines;
+
+      final List<Map<String, dynamic>> productsList = filteredProductLines.map((p) {
         final prodSupplierName = p.supplier ?? '';
         final prodSupplierObj = (() {
           if (prodSupplierName.isEmpty) return null;
@@ -882,6 +921,7 @@ bottomNavigationBar: Container(
           'unit_price': p.unitPrice,
           'supplier': prodSupplierObj,
           'currency': _currencyCodes[p.currency] ?? p.currency,
+          'statut_line': p.statutLine,
         };
       }).toList();
       // Construction du body attendu par le backend
@@ -1465,12 +1505,29 @@ bottomNavigationBar: Container(
               ),
             ],
           ),
+          if (product.statutLine != null && product.statutLine!.toLowerCase() != 'pending') ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(product.statutLine!).withOpacity(0.1),
+                  border: Border.all(color: _getStatusColor(product.statutLine!)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Statut: ${_getStatusText(product.statutLine!)}',
+                  style: TextStyle(
+                    color: _getStatusColor(product.statutLine!),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
-    ),
-      );
+      ),
+    );
   }
-
-  
-
-  
 }

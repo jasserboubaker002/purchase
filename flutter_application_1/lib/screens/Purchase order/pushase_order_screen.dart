@@ -353,7 +353,7 @@ class _PurchaseOrderPageBodyState extends State<_PurchaseOrderPageBody> {
     if (Provider.of<UserController>(context, listen: false).currentUser.role?.id == 6) {
       mapped = mapped.where((order) {
         final s = (order['statuss'] ?? '').toString().toLowerCase();
-        return s == 'approved' || s == 'rejected' || s == 'edited' || s == 'pending' || s == 'rework';
+        return s == 'approved' || s == 'rejected' || s == 'edited' || s == 'pending';
       }).toList();
     }
 

@@ -42,6 +42,7 @@ class PurchaseOrderView extends StatefulWidget {
 
 class _PurchaseOrderViewState extends State<PurchaseOrderView> {
   late PurchaseOrder _order;
+  bool _hasLineActionTaken = false;
 
   @override
   void initState() {
@@ -120,6 +121,9 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
     final String displayStatusLower = displayStatus.toLowerCase();
     final String underlyingStatusLower = statusStr;
 
+    // Pour le rôle 6 (accountant), ne pas filtrer les lignes rejetées - elles seront supprimées seulement quand le rôle 4 sauvegardera
+    final filteredProducts = products;
+
     // Determine whether action buttons should be visible for current user
     // Allow admins (role 1), supervisors (role id 4) and accountants (6) to act when order is 'pending' or 'edited'.
     final canShowActions = ((underlyingStatusLower == 'pending' || underlyingStatusLower == 'edited') && (roleIdInt == 1 ||  roleIdInt == 6));
@@ -129,7 +133,7 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
       print('PurchaseOrderView: role=6 but actions hidden (status="$statusStr", display="$displayStatusLower")');
     }
     // compute total and currency symbol
-    final double totalAmount = (products).fold<double>(0.0, (sum, p) => sum + ((p.unitPrice ?? 0.0) * (p.quantity ?? 0)));
+    final double totalAmount = (filteredProducts).fold<double>(0.0, (sum, p) => sum + ((p.unitPrice ?? 0.0) * (p.quantity ?? 0)));
     String currencySymbol = '\$';
     final currencyRaw = _order.currency?.toString();
     if (currencyRaw != null && currencyRaw.isNotEmpty) {
@@ -356,14 +360,14 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
               Text(AppLocalizations.of(context)!.products, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
               const SizedBox(height: 8),
-              if (products.isNotEmpty)
+              if (filteredProducts.isNotEmpty)
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: products.length,
+                  itemCount: filteredProducts.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
-                    final prod = products[index];
+                    final prod = filteredProducts[index];
                     final unitPrice = prod.unitPrice ?? 0.0;
                     final quantity = prod.quantity ?? 0;
                     final totalPrice = unitPrice * quantity;
@@ -585,6 +589,7 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                         onPressed: () async {
                                           setState(() {
                                             prod.statutLine = 'approved';
+                                            _hasLineActionTaken = true;
                                           });
                                           try {
                                             await purchaseOrderController.updateOrder(_order.toJson());
@@ -621,10 +626,21 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                           if (result != null) {
                                             setState(() {
                                               prod.statutLine = result == 'total' ? 'rejected' : 'for_modification';
+                                              _hasLineActionTaken = true;
                                             });
                                             try {
                                               await purchaseOrderController.updateOrder(_order.toJson());
+                                              // Recharger les données et mettre à jour l'order local
+                                              await purchaseOrderController.fetchOrders();
                                               if (mounted) {
+                                                // Chercher l'order mis à jour dans la liste
+                                                final updatedOrder = purchaseOrderController.orders.firstWhere(
+                                                  (o) => o.id == _order.id,
+                                                  orElse: () => _order,
+                                                );
+                                                setState(() {
+                                                  _order = updatedOrder;
+                                                });
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   SnackBar(
                                                     content: Text('Product rejected successfully'),
@@ -767,7 +783,7 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  if (canShowActions) ...[
+                  if (!_hasLineActionTaken && canShowActions) ...[
                     ElevatedButton(
                       onPressed: () async {
                         try {
@@ -1026,6 +1042,60 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: Text(AppLocalizations.of(context)!.reject),
+                    ),
+                  ] else if (_hasLineActionTaken && roleIdInt == 6) ...[
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          final updatedOrderJson = {
+                            ..._order.toJson(),
+                            if (userController.currentUser.role?.id == 6)
+                              'approved_by': userController.currentUser.id,
+                            if (_order.startDate != null)
+                              'start_date': DateFormat('yyyy-MM-dd').format(_order.startDate!),
+                            if (_order.endDate != null)
+                              'end_date': DateFormat('yyyy-MM-dd').format(_order.endDate!),
+                            if (_order.supplierDeliveryDate != null)
+                              'supplier_delivery_date': DateFormat('yyyy-MM-dd').format(_order.supplierDeliveryDate!),
+                            'statuss': 'rework',
+                            'rejected_reason': null,
+                            'refuse_reason': null,
+                            'for_modification': true,
+                          };
+                          await purchaseOrderController.updateOrder(updatedOrderJson);
+                          await purchaseOrderController.fetchOrders();
+                          
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Purchase order marked as rework'),
+                                backgroundColor: Colors.blue,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                            Navigator.of(context).pop();
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(120, 44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Done'),
                     ),
                   ],
                 ],
