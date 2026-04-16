@@ -43,6 +43,7 @@ class PurchaseOrderView extends StatefulWidget {
 class _PurchaseOrderViewState extends State<PurchaseOrderView> {
   late PurchaseOrder _order;
   bool _hasLineActionTaken = false;
+  bool _hasDirectPoActionTaken = false;
 
   @override
   void initState() {
@@ -589,7 +590,6 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                         onPressed: () async {
                                           setState(() {
                                             prod.statutLine = 'approved';
-                                            _hasLineActionTaken = true;
                                           });
                                           try {
                                             await purchaseOrderController.updateOrder(_order.toJson());
@@ -626,7 +626,6 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                           if (result != null) {
                                             setState(() {
                                               prod.statutLine = result == 'total' ? 'rejected' : 'for_modification';
-                                              _hasLineActionTaken = true;
                                             });
                                             try {
                                               await purchaseOrderController.updateOrder(_order.toJson());
@@ -783,10 +782,18 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  if (!_hasLineActionTaken && canShowActions) ...[
+                  if (!_hasLineActionTaken && !_hasDirectPoActionTaken && canShowActions) ...[
                     ElevatedButton(
                       onPressed: () async {
                         try {
+                          // Bulk approve all lines
+                          for (var prod in _order.products ?? []) {
+                            prod.statutLine = 'approved';
+                          }
+                          setState(() {
+                            _hasDirectPoActionTaken = true;
+                          });
+
                           final updatedOrderJson = {
                             ..._order.toJson(),
                             // Ajout pour role 6 : approved_by
@@ -841,9 +848,10 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                 createdAt: _order.createdAt,
                                 updatedAt: DateTime.now(),
                               );
+                              _hasDirectPoActionTaken = true;
                             });
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Purchase order approved!'),
+                              SnackBar(content: Text('All lines approved and order approved!'),
                               backgroundColor: Colors.green,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -887,6 +895,14 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                             if (result == null) return;
 
                             final isForModification = choice == 'modify';
+
+                            // Bulk reject all lines
+                            for (var prod in _order.products ?? []) {
+                              prod.statutLine = 'rejected';
+                            }
+                            setState(() {
+                              _hasDirectPoActionTaken = true;
+                            });
 
                             final updatedOrderJson = {
                               'id': _order.id,
@@ -946,6 +962,7 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                 try {
                                   (_order as dynamic).rejectedReason = result['reason_id'];
                                 } catch (_) {}
+                                _hasDirectPoActionTaken = true;
                               });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(isForModification ? '${AppLocalizations.of(context)!.rejected} (for modification)' : AppLocalizations.of(context)!.purchaseOrderRejected,  style: TextStyle(color: Colors.white)), backgroundColor: isForModification ? Colors.orange : Colors.red),
