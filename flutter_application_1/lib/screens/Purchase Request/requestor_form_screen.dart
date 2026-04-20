@@ -345,12 +345,12 @@ class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
                         items: dynamicProductFamilies.keys
                             .map((fam) => DropdownMenuItem(value: fam, child: Text(fam)))
                             .toList(),
-                        onChanged: (val) {
+                        onChanged: products.isEmpty ? (val) {
                           setState(() {
                             selectedFamily = val;
                             selectedSubFamily = null;
                           });
-                        },
+                        } : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
