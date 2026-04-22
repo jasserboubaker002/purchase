@@ -18,6 +18,7 @@ class PurchaseRequestorForm extends StatefulWidget {
 class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
   final TextEditingController productController = TextEditingController();
   String? selectedFamily;
+  String? lockedFamily;
   String? selectedSubFamily;
   String? selectedProduct;
   late Map<String, List<String>> dynamicProductFamilies = {};
@@ -51,6 +52,13 @@ class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
       quantityController.text = widget.initialOrder['quantity']?.toString() ?? '';
       noteController.text = widget.initialOrder['note'] ?? '';
       selectedPriority = widget.initialOrder['priority'];
+      if (widget.initialOrder['family'] != null) {
+        selectedFamily = widget.initialOrder['family']?.toString();
+        lockedFamily = selectedFamily;
+      }
+      if (widget.initialOrder['subFamily'] != null) {
+        selectedSubFamily = widget.initialOrder['subFamily']?.toString();
+      }
 
       var dueDateValue = widget.initialOrder['dueDate'];
       if (dueDateValue is String) {
@@ -253,25 +261,26 @@ class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
   }
 
   void _addProduct() {
-    final family = selectedFamily;
-    final subFamily = selectedSubFamily;
+    final family = lockedFamily ?? selectedFamily;
+    final subFamily = selectedSubFamily?.trim().isNotEmpty == true ? selectedSubFamily : family;
     final product = productController.text.trim().isNotEmpty ? productController.text.trim() : selectedProduct?.trim();
     final quantity = int.tryParse(quantityController.text.trim()) ?? 0;
 
-    if ((family == null || family.isEmpty) ||
-        (subFamily == null || subFamily.isEmpty) ||
-        quantity <= 0) {
+    if (family == null || family.isEmpty || quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez choisir une famille, une sous-famille et une quantité valide')),
+        const SnackBar(content: Text('Veuillez choisir une famille et une quantité valide')),
       );
       return;
     }
 
     setState(() {
+      if (lockedFamily == null) {
+        lockedFamily = family;
+      }
       products.add({
         'family': family,
         'subFamily': subFamily,
-        'product': product != null && product.isNotEmpty ? product : subFamily,
+        'product': (product != null && product.isNotEmpty) ? product : subFamily,
         'quantity': quantity,
         'brand': null,
         'unit_price': 0.0,
@@ -280,7 +289,6 @@ class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
       productController.clear();
       selectedProduct = null;
       quantityController.clear();
-      selectedFamily = null;
       selectedSubFamily = null;
     });
   }
@@ -335,9 +343,10 @@ class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       DropdownButtonFormField<String>(
-                        value: selectedFamily,
+                        value: lockedFamily ?? selectedFamily,
                         decoration: InputDecoration(
                           labelText: AppLocalizations.of(context)!.familyLabel,
+                          helperText: lockedFamily != null ? 'Famille verrouillée: $lockedFamily' : null,
                           border: const OutlineInputBorder(),
                           filled: true,
                           fillColor: Colors.white,
@@ -345,12 +354,17 @@ class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
                         items: dynamicProductFamilies.keys
                             .map((fam) => DropdownMenuItem(value: fam, child: Text(fam)))
                             .toList(),
-                        onChanged: products.isEmpty ? (val) {
-                          setState(() {
-                            selectedFamily = val;
-                            selectedSubFamily = null;
-                          });
-                        } : null,
+                        onChanged: lockedFamily == null
+                            ? (val) {
+                                setState(() {
+                                  selectedFamily = val;
+                                  selectedSubFamily = null;
+                                  selectedProduct = null;
+                                  productController.clear();
+                                  productOptions = [];
+                                });
+                              }
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
@@ -361,9 +375,9 @@ class _PurchaseRequestorFormState extends State<PurchaseRequestorForm> {
                           filled: true,
                           fillColor: Colors.white,
                         ),
-                        items: selectedFamily == null
+                        items: (lockedFamily ?? selectedFamily) == null
                             ? []
-                            : dynamicProductFamilies[selectedFamily]!
+                            : dynamicProductFamilies[lockedFamily ?? selectedFamily]!
                                 .map((sub) => DropdownMenuItem(value: sub, child: Text(sub)))
                                 .toList(),
                         onChanged: (val) {

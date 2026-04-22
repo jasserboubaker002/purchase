@@ -218,6 +218,11 @@ class UserController extends ChangeNotifier {
   Future<void> login(String email, String password, BuildContext context,
       GlobalKey<FormState>? _formKey) async {
     try {
+      // Reset user data before login to avoid contamination from previous session
+      currentUser = User();
+      currentUserId = null;
+      selectedUserId = null;
+      selectedUser = User();
       // if ((!(_formKey!.currentState!.validate()))&&_formKey!=null) {
       isLoading = true;
       notifyListeners();
@@ -238,6 +243,7 @@ class UserController extends ChangeNotifier {
           currentUserId = uid is int ? uid : int.tryParse(uid?.toString() ?? '') ?? 0;
           selectedUserId = currentUserId;
           currentUser = User.fromJson(response.data['user']);
+          print('✅ User after fromJson - role: ${currentUser.role?.name} (id: ${currentUser.role?.id}), role_id field: ${currentUser.role_id}');
           currentUser.statut = true; // Mettre le statut à true au login
           // Sauvegarder le statut au backend
           try {
@@ -247,14 +253,13 @@ class UserController extends ChangeNotifier {
           } catch (e) {
             print('Error updating statut on login: $e');
           }
-          // if backend returned null role for admin user, provide fallback
-          if (currentUser.role == null) {
-            if (currentUser.username != null && currentUser.username!.toLowerCase() == 'admin') {
-              currentUser.role = Role(id: 1, name: 'Admin');
-            } else if (currentUser.role_id != null) {
-              currentUser.role = Role(id: currentUser.role_id!, name: '');
-            }
+          // if backend returned null role, provide sensible fallback based on role_id
+          if (currentUser.role == null && currentUser.role_id != null) {
+            final roleName = _getRoleNameForId(currentUser.role_id!);
+            currentUser.role = Role(id: currentUser.role_id!, name: roleName);
+            print('⚠️ Fallback role created: id=${currentUser.role_id}, name=$roleName');
           }
+          print('✅ User after fallback - role: ${currentUser.role?.name} (id: ${currentUser.role?.id})');
           // role_id is already handled in User.fromJson, no need to mutate final field
 
           // Sauvegarder les données utilisateur, token d'accès et refresh token
@@ -268,6 +273,7 @@ class UserController extends ChangeNotifier {
 
         // navigation decided by role id
         final int? roleId = currentUser.role?.id;
+        print('🔀 Navigation: roleId=$roleId, will route to: ${roleId == 1 || roleId == 4 || roleId == 6 ? "dashboard" : (roleId == 2 || roleId == 3 ? "purchase_requests" : "dashboard-fallback")}');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final router = GoRouter.of(context);
           // For admins (1) and supervisors/accountants (4 and 6) open dashboard directly
@@ -358,21 +364,21 @@ class UserController extends ChangeNotifier {
 
           if (!isExpired) {
             Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-            currentUserId = decodedToken['user_id'];
+            // user_id can be String or int, convert to int
+            final dynamic uid = decodedToken['user_id'];
+            currentUserId = uid is int ? uid : int.tryParse(uid?.toString() ?? '') ?? 0;
             selectedUserId = currentUserId;
 
             Map<String, dynamic> userData = jsonDecode(userDataJson);
             if (userData.isNotEmpty) {
               currentUser = User.fromJson(userData);
-            // fallback for null role
-            if (currentUser.role == null) {
-              if (currentUser.username != null && currentUser.username!.toLowerCase() == 'admin') {
-                currentUser.role = Role(id: 1, name: 'Admin');
-              } else if (currentUser.role_id != null) {
-                currentUser.role = Role(id: currentUser.role_id!, name: '');
+              // fallback for null role
+              if (currentUser.role == null && currentUser.role_id != null) {
+                final roleName = _getRoleNameForId(currentUser.role_id!);
+                currentUser.role = Role(id: currentUser.role_id!, name: roleName);
+                print('⚠️ Fallback role created on load: id=${currentUser.role_id}, name=$roleName');
               }
-            }
-            // Mettre à jour le token global
+              // Mettre à jour le token global
             APIS.token = token;
             notifyListeners();
             return true;
@@ -823,6 +829,19 @@ class UserController extends ChangeNotifier {
         print('updateAllUser: finished for selectedUserId=$selectedUserId');
       } catch (e) {}
     }
+  }
+
+  /// Get role name based on role ID fallback mapping
+  String _getRoleNameForId(int roleId) {
+    const roleMap = {
+      1: 'Admin',
+      2: 'User',
+      3: 'Manager',
+      4: 'N3',  // Supervisor
+      5: 'Visitor',
+      6: 'Accountant',
+    };
+    return roleMap[roleId] ?? 'Unknown';
   }
 
   /// Defer notifications to avoid calling listeners during widget build

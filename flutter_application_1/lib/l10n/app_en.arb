@@ -480,6 +480,7 @@
   "supplier": "Supplier",
   "total": "Total",
   "department": "Department",
+  "service": "Service",
   "userNotLoggedInError": "User is not logged in",
   "pleaseAddAtLeastOneProduct": "Please add at least one product",
   "eachProductMustHaveNameAndQuantity": "Each product must have a name and quantity",

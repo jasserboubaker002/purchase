@@ -68,6 +68,7 @@ class _PurchaseOrderFormState extends State<PurchaseOrderForm> {
   DateTime? _updatedAt;
   List<ProductLine> productLines = [ProductLine()];
   final TextEditingController supplierDeliveryDateController = TextEditingController();
+  final TextEditingController desiredPaymentDateController = TextEditingController();
   // Multi-currency support
   String _currency = 'Dollar';
   final Map<String, String> _currencySymbols = {
@@ -157,6 +158,34 @@ class _PurchaseOrderFormState extends State<PurchaseOrderForm> {
       } else {
         dueDateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
       }
+      final supplierDeliveryRaw = initial['supplier_delivery_date'] ?? initial['supplierDeliveryDate'];
+      if (supplierDeliveryRaw != null) {
+        try {
+          DateTime sd;
+          if (supplierDeliveryRaw is DateTime) {
+            sd = supplierDeliveryRaw;
+          } else {
+            sd = DateTime.parse(supplierDeliveryRaw.toString());
+          }
+          supplierDeliveryDateController.text = DateFormat('dd-MM-yyyy').format(sd);
+        } catch (_) {
+          supplierDeliveryDateController.text = '';
+        }
+      }
+      final desiredPaymentRaw = initial['date_paiement_souhaite'] ?? initial['datePaiementSouhaite'] ?? initial['desired_payment_date'] ?? initial['desiredPaymentDate'];
+      if (desiredPaymentRaw != null) {
+        try {
+          DateTime dp;
+          if (desiredPaymentRaw is DateTime) {
+            dp = desiredPaymentRaw;
+          } else {
+            dp = DateTime.parse(desiredPaymentRaw.toString());
+          }
+          desiredPaymentDateController.text = DateFormat('dd-MM-yyyy').format(dp);
+        } catch (_) {
+          desiredPaymentDateController.text = '';
+        }
+      }
       noteController.text = initial['description'] ?? '';
       if (initial['products'] != null && initial['products'] is List) {
         productLines = (initial['products'] as List).map((p) {
@@ -208,6 +237,7 @@ class _PurchaseOrderFormState extends State<PurchaseOrderForm> {
   @override
   void dispose() {
     supplierDeliveryDateController.dispose();
+    desiredPaymentDateController.dispose();
     noteController.dispose();
     dueDateController.dispose();
     supplierNameController.dispose();
@@ -522,6 +552,40 @@ Row(
   ],
 ),
 
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Date paiement souhaité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54),),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: desiredPaymentDateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  onTap: () async {
+                    DateTime initialDate = DateTime.now();
+                    if (desiredPaymentDateController.text.isNotEmpty) {
+                      final parsed = DateTime.tryParse(desiredPaymentDateController.text);
+                      if (parsed != null) initialDate = parsed;
+                    }
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: initialDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      setState(() {
+                        desiredPaymentDateController.text = DateFormat('dd-MM-yyyy').format(pickedDate);
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             TextField(
               controller: noteController,
@@ -623,6 +687,24 @@ Row(
 
     // Correction du parsing de la date de fin
     DateTime? parsedEndDate;
+    DateTime? parsedDesiredPaymentDate;
+    if (desiredPaymentDateController.text.isNotEmpty) {
+      try {
+        parsedDesiredPaymentDate = DateFormat('dd-MM-yyyy').parseStrict(desiredPaymentDateController.text);
+      } catch (_) {
+        try {
+          parsedDesiredPaymentDate = DateFormat('yyyy-MM-dd').parseStrict(desiredPaymentDateController.text);
+        } catch (_) {
+          parsedDesiredPaymentDate = null;
+        }
+      }
+      if (parsedDesiredPaymentDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.failedWithError('Invalid desired payment date'))),
+        );
+        return;
+      }
+    }
     try {
       parsedEndDate = DateFormat('dd-MM-yyyy').parseStrict(dueDateController.text);
     } catch (_) {
@@ -701,6 +783,10 @@ Row(
       };
         if (parsedSupplierDeliveryDate != null) {
           jsonBody['supplier_delivery_date'] = DateFormat('yyyy-MM-dd').format(parsedSupplierDeliveryDate);
+        }
+      if (parsedDesiredPaymentDate != null) {
+          jsonBody['date_paiement_souhaite'] = DateFormat('yyyy-MM-dd').format(parsedDesiredPaymentDate);
+          jsonBody['datePaiementSouhaite'] = DateFormat('yyyy-MM-dd').format(parsedDesiredPaymentDate);
         }
       if (widget.initialOrder.isNotEmpty) {
         widget.onSave(jsonBody);

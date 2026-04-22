@@ -73,6 +73,7 @@ class _EditPurchaseOrderState extends State<EditPurchaseOrder> {
   // Product cards shown as static stacked list (all information visible)
   // Order-level Supplier Delivery date
   final TextEditingController supplierDeliveryDateController = TextEditingController();
+  final TextEditingController desiredPaymentDateController = TextEditingController();
   // Multi-currency support
   String _currency = 'Dollar';
   final Map<String, String> _currencySymbols = {
@@ -227,6 +228,20 @@ class _EditPurchaseOrderState extends State<EditPurchaseOrder> {
           supplierDeliveryDateController.text = '';
         }
       }
+      final desiredPaymentRaw = initial['date_paiement_souhaite'] ?? initial['datePaiementSouhaite'] ?? initial['desired_payment_date'] ?? initial['desiredPaymentDate'];
+      if (desiredPaymentRaw != null) {
+        try {
+          DateTime dp;
+          if (desiredPaymentRaw is DateTime) {
+            dp = desiredPaymentRaw;
+          } else {
+            dp = DateTime.parse(desiredPaymentRaw.toString());
+          }
+          desiredPaymentDateController.text = DateFormat('dd-MM-yyyy').format(dp);
+        } catch (_) {
+          desiredPaymentDateController.text = '';
+        }
+      }
       noteController.text = initial['description'] ?? '';
       if (initial['products'] != null && initial['products'] is List) {
         productLines = (initial['products'] as List).map((p) {
@@ -278,6 +293,7 @@ class _EditPurchaseOrderState extends State<EditPurchaseOrder> {
   _updatedAt = DateTime.now();
       // initialize order-level supplier delivery date to today's date by default
       supplierDeliveryDateController.text = DateFormat('dd-MM-yyyy').format(DateTime.now());
+      desiredPaymentDateController.text = '';
     }
   }
 
@@ -729,6 +745,46 @@ class _EditPurchaseOrderState extends State<EditPurchaseOrder> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Date paiement souhaité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54),),
+                  const SizedBox(height: 4),
+                  TextFormField(
+                    controller: desiredPaymentDateController,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.black87),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      suffixIcon: const Icon(Icons.calendar_today),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onTap: () async {
+                      DateTime initialDate = DateTime.now();
+                      if (desiredPaymentDateController.text.isNotEmpty) {
+                        final parsed = DateTime.tryParse(desiredPaymentDateController.text);
+                        if (parsed != null) initialDate = parsed;
+                      }
+                      DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: initialDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          desiredPaymentDateController.text = DateFormat('dd-MM-yyyy').format(pickedDate);
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
               // Note
               Text(AppLocalizations.of(context)!.noteLabel),
@@ -868,6 +924,24 @@ bottomNavigationBar: Container(
     }
     // Correction du parsing de la date de fin
     DateTime? parsedEndDate;
+    DateTime? parsedDesiredPaymentDate;
+    if (desiredPaymentDateController.text.isNotEmpty) {
+      try {
+        parsedDesiredPaymentDate = DateFormat('dd-MM-yyyy').parseStrict(desiredPaymentDateController.text);
+      } catch (_) {
+        try {
+          parsedDesiredPaymentDate = DateFormat('yyyy-MM-dd').parseStrict(desiredPaymentDateController.text);
+        } catch (_) {
+          parsedDesiredPaymentDate = null;
+        }
+      }
+      if (parsedDesiredPaymentDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid desired payment date.')),
+        );
+        return;
+      }
+    }
     try {
       parsedEndDate = DateFormat('dd-MM-yyyy').parseStrict(dueDateController.text);
     } catch (_) {
@@ -968,6 +1042,8 @@ bottomNavigationBar: Container(
         'created_at': DateFormat('yyyy-MM-dd').format(DateTime.now()).toString(),
         'updated_at': DateFormat('yyyy-MM-dd').format(_updatedAt ?? DateTime.now()).toString(),
         'supplier_delivery_date': parsedSupplierDeliveryDate != null ? DateFormat('yyyy-MM-dd').format(parsedSupplierDeliveryDate) : null,
+        'date_paiement_souhaite': parsedDesiredPaymentDate != null ? DateFormat('yyyy-MM-dd').format(parsedDesiredPaymentDate) : null,
+        'datePaiementSouhaite': parsedDesiredPaymentDate != null ? DateFormat('yyyy-MM-dd').format(parsedDesiredPaymentDate) : null,
         'priority': _priority,
       };
       if (widget.initialOrder.isNotEmpty && widget.initialOrder['id'] != null) {

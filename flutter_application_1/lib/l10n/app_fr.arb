@@ -496,6 +496,7 @@
   "supplier": "Fournisseur",
   "total": "Total",
   "department": "Département",
+  "service": "Service",
   "userNotLoggedInError": "L'utilisateur n'est pas connecté",
   "pleaseAddAtLeastOneProduct": "Veuillez ajouter au moins un produit",
   "eachProductMustHaveNameAndQuantity": "Chaque produit doit avoir un nom et une quantité",

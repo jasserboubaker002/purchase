@@ -9,6 +9,7 @@ import 'package:flutter_application_1/screens/Supplier/Supplier_registration_scr
 import 'package:flutter_application_1/screens/Reject reason/reject_reason_list.dart';
 
 import 'package:flutter_application_1/screens/Department/department_list_screen.dart';
+import 'package:flutter_application_1/screens/Service/service_list_screen.dart';
 import 'package:flutter_application_1/screens/auth/login_screen.dart';
 import 'package:flutter_application_1/screens/stats/stats_screen_new.dart';
 import 'package:flutter_application_1/screens/profile/profile_user.dart';
@@ -152,6 +153,11 @@ final GoRouter router = GoRouter(
             initialId: null,
             onSelect: (dept) {},
           ),
+        ),
+
+        GoRoute(
+          path: '/service',
+          builder: (context, state) => const ServiceListScreen(),
         ),
 
         GoRoute(

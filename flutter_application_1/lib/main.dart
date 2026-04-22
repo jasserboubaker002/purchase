@@ -7,6 +7,7 @@ import 'package:flutter_application_1/controllers/purchase_request_controller.da
 import 'package:flutter_application_1/controllers/supplier_controller.dart';
 import 'package:flutter_application_1/controllers/reject_reason_controller.dart';
 import 'package:flutter_application_1/controllers/department_controller.dart';
+import 'package:flutter_application_1/controllers/service_controller.dart';
 // import 'package:flutter_application_1/controllers/stats_controller.dart';
 
 import 'package:flutter_application_1/controllers/user_controller.dart';
@@ -20,6 +21,7 @@ import 'package:flutter_application_1/screens/Dashboard/purchase_dashboard.dart'
 import 'package:flutter_application_1/screens/Purchase%20Request/purchase_request_list_screen.dart' as requestor_order;
 import 'package:flutter_application_1/screens/Purchase%20order/pushase_order_screen.dart';
 import 'package:flutter_application_1/screens/Supplier/Supplier_registration_screen.dart';
+import 'package:flutter_application_1/screens/Service/service_list_screen.dart';
 import 'package:flutter_application_1/screens/profile/profile_user.dart';
 import 'package:flutter_application_1/screens/users/password_screen.dart';
 import 'package:flutter_application_1/screens/Role/Role_screen.dart';
@@ -44,6 +46,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => ProductController()),
         ChangeNotifierProvider(create: (_) => RejectReasonController()),
         ChangeNotifierProvider(create: (_) => DepartmentController()),
+        ChangeNotifierProvider(create: (_) => ServiceController()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ResetNotifier()),
         ChangeNotifierProvider(create: (_) => StatsController()),
@@ -72,6 +75,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => ProductController()),
         ChangeNotifierProvider(create: (_) => RejectReasonController()),
         ChangeNotifierProvider(create: (_) => DepartmentController()),
+        ChangeNotifierProvider(create: (_) => ServiceController()),
         // ChangeNotifierProvider(create: (_) => StatsController()),
         // ChangeNotifierProvider(create: (_) => ProductController()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
@@ -165,6 +169,8 @@ class _MainScreenState extends State<MainScreen> {
         return const FamiliesPage();
       case 'Supplier':
         return const SupplierRegistrationPage();
+      case 'Service':
+        return const ServiceListScreen();
       default:
         return ProfilePageScreen(userId: id);
     }

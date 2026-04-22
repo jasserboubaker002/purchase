@@ -5,6 +5,7 @@ class PurchaseOrder {
   DateTime? startDate;
   DateTime? endDate;
   DateTime? supplierDeliveryDate;
+  DateTime? desiredPaymentDate;
   List<dynamic>? products;
   String? title;
   String? description;
@@ -32,6 +33,8 @@ class PurchaseOrder {
       this.approvedBy,
       this.startDate,
       this.endDate,
+      this.supplierDeliveryDate,
+      this.desiredPaymentDate,
       this.products,
       this.title,
       this.description,
@@ -62,6 +65,7 @@ class PurchaseOrder {
     endDate = _parseDate(json['end_date'] ?? json['endDate']);
     // Accept both snake_case and camelCase keys from different backends
     supplierDeliveryDate = _parseDate(json['supplier_delivery_date'] ?? json['supplierDeliveryDate']);
+    desiredPaymentDate = _parseDate(json['date_paiement_souhaite'] ?? json['datePaiementSouhaite'] ?? json['desired_payment_date'] ?? json['desiredPaymentDate']);
 
     // Normalize purchase request link to integer id
     if (json['purchase_request_id'] != null) {
@@ -161,8 +165,9 @@ class PurchaseOrder {
     data['start_date'] = _formatDateForApi(startDate);
     data['end_date'] = _formatDateForApi(endDate);
     data['supplier_delivery_date'] = _formatDateForApi(supplierDeliveryDate);
-    // Also provide camelCase key for compatibility
     data['supplierDeliveryDate'] = _formatDateForApi(supplierDeliveryDate);
+    data['date_paiement_souhaite'] = _formatDateForApi(desiredPaymentDate);
+    data['datePaiementSouhaite'] = _formatDateForApi(desiredPaymentDate);
     if (products != null) {
       data['products'] = products!.map((v) => v.toJson()).toList();
     }

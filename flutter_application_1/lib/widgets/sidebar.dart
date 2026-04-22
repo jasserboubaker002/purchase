@@ -149,16 +149,20 @@ class _AppSidebarState extends State<AppSidebar> {
       'Product': localizations.product,
       'Profile': localizations.profile,
       'Statistics': 'Statistics',
+      'Service': 'Service',
     };
     return labelMap[label] ?? label;
   }
 
   void initSideBarItems() {
     int? roleId = userController.currentUser.role?.id ?? userController.currentUser.role_id;
+    print('🔐 Sidebar initSideBarItems: role?.id=${userController.currentUser.role?.id}, role_id=${userController.currentUser.role_id}, final roleId=$roleId');
     // backend may return null role for initial admin user; treat explicit "admin" username as role 1
     if (roleId == null && userController.currentUser.username?.toLowerCase() == 'admin') {
       roleId = 1;
+      print('⚠️ Sidebar: fallback to admin because username is "admin"');
     }
+    print('✅ Sidebar: Setting up menu for roleId=$roleId');
     
     if(roleId == 1){
       items.addAll([
@@ -169,6 +173,7 @@ class _AppSidebarState extends State<AppSidebar> {
       {'label': 'Supplier', 'icon': Icons.store},
       {'label': 'Reject Reasons', 'icon': Icons.block},
       {'label': 'Product', 'icon': Icons.production_quantity_limits},
+      {'label': 'Service', 'icon': Icons.miscellaneous_services},
       {'label': 'Users', 'icon': Icons.people},
       {'label': 'Roles and access', 'icon': Icons.security},
       {'label': 'Password', 'icon': Icons.lock},
@@ -306,6 +311,7 @@ class _AppSidebarState extends State<AppSidebar> {
       'Reject Reasons': '/reject_reasons',
       'Product': '/families',
       'Department': '/departments',
+      'Service': '/service',
       'Users': '/users_list',
       'Roles and access': '/role',
       'Password': '/password',

@@ -104,6 +104,7 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
     final dueDate = _order.endDate != null ? dateFormat.format(_order.endDate!) : '-';
     // Fallback: if supplierDeliveryDate is not set, show the PO due date instead (more useful to users)
     final supplierDeliveryDate = (_order.supplierDeliveryDate ?? _order.endDate) != null ? dateFormat.format((_order.supplierDeliveryDate ?? _order.endDate)!) : '-';
+    final desiredPaymentDate = _order.desiredPaymentDate != null ? dateFormat.format(_order.desiredPaymentDate!) : '-';
     final priority = _order.priority ?? '-';
     final note = _order.description ?? '';
     final products = _order.products ?? [];
@@ -356,6 +357,32 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                 ],
               ),
               const SizedBox(height: 24),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Date de paiement souhaité', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54),),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: TextEditingController(text: desiredPaymentDate),
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.black87),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.deepPurple),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      suffixIcon: const Icon(Icons.calendar_today),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               const SizedBox(height: 24),
               // Products section
               Text(AppLocalizations.of(context)!.products, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -590,13 +617,16 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                         onPressed: () async {
                                           setState(() {
                                             prod.statutLine = 'approved';
+                                            if (roleIdInt == 6) {
+                                              _hasLineActionTaken = true;
+                                            }
                                           });
                                           try {
                                             await purchaseOrderController.updateOrder(_order.toJson());
                                             if (mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
-                                                  content: Text('Product approved successfully'),
+                                                  content: Text(roleIdInt == 6 ? 'Line approved; click DONE to finish' : 'Product approved successfully'),
                                                   backgroundColor: Colors.green,
                                                 ),
                                               );
@@ -626,6 +656,9 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                                           if (result != null) {
                                             setState(() {
                                               prod.statutLine = result == 'total' ? 'rejected' : 'for_modification';
+                                              if (roleIdInt == 6) {
+                                                _hasLineActionTaken = true;
+                                              }
                                             });
                                             try {
                                               await purchaseOrderController.updateOrder(_order.toJson());
@@ -1106,13 +1139,14 @@ class _PurchaseOrderViewState extends State<PurchaseOrderView> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: const Color(0xFF1E88E5),
                         foregroundColor: Colors.white,
-                        minimumSize: const Size(120, 44),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        minimumSize: const Size(140, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      child: const Text('Done'),
+                      child: const Text('DONE', style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
                   ],
                 ],

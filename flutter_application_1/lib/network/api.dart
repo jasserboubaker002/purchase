@@ -31,8 +31,8 @@ class APIS {
   //   ));
   // }
 
-  static const String baseUrl = "http://72.60.90.60:8000/";
-  // static const String baseUrl = "http://127.0.0.1:8000/";
+  // static const String baseUrl = "http://72.60.90.60:8000/";
+  static const String baseUrl = "http://127.0.0.1:8000/";
   // static const String httpbaseUrl = "72.60.90.60:8000/";
 
   // Remove leading slash to allow safe concatenation with baseUrl
@@ -109,6 +109,12 @@ class APIS {
   static const String createDepartment = "department/departments/";
   static const String editDepartment = "department/departments/";
   static const String deleteDepartment = "department/departments/";
+
+  // Services endpoints
+  static const String fetchServices = "service/services/";
+  static const String createService = "service/services/";
+  static const String editService = "service/services/";
+  static const String deleteService = "service/services/";
 
   // Added endpoint for subfamily creation
 

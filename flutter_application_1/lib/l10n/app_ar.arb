@@ -491,6 +491,7 @@
   "supplier": "المورد",
   "total": "المجموع",
   "department": "القسم",
+  "service": "الخدمة",
   "userNotLoggedInError": "المستخدم غير مسجل دخول",
   "pleaseAddAtLeastOneProduct": "يرجى إضافة منتج واحد على الأقل",
   "eachProductMustHaveNameAndQuantity": "يجب أن يكون لكل منتج اسم وكمية",
